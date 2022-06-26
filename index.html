@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<style>
+canvas {
+    display: block;
+    border:1px solid #d3d3d3;
+    background-color: #161414;
+}
+</style>
+</head>
+<body style="background-color:#575454">
+<script>
+window.onload=()=>{
+    startGame();
+    ceiling();
+}
+var myGamePiece;
+var myObstacles = [];
+var health = 3;
+var t = 1;
+var points = 0;
+
+function startGame() {
+    myGamePiece = new component(30, 30, "red", 30, 120,false);
+    spikeArea.start();
+    myGameArea.start();
+}
+var spikeArea={
+	canvas : document.createElement("canvas"),
+    start : function() {
+        this.canvas.width = 704;
+        this.canvas.height = 50;
+        this.context = this.canvas.getContext("2d");
+        document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+    }
+}
+function ceiling(){
+    ctx = spikeArea.context;
+    ctx.fillStyle = 'red';
+    var j=1;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    for(let i=1;i<17;i++){
+        ctx.lineTo(22*j,50);
+        ctx.lineTo(44*i,0);
+        ctx.fill();
+        j+=2;
+    }
+}
+var myGameArea = {
+    canvas : document.createElement("canvas"),
+    start : function() {
+        this.canvas.width = 704;
+        this.canvas.height = 400;
+        this.context = this.canvas.getContext("2d");
+        document.body.insertBefore(this.canvas, document.body.childNodes[1]);
+        this.frameNo = 0;
+        this.interval = setInterval(updateGameArea, 15);
+        },
+    clear : function() {
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    },
+    stop : function() {
+        clearInterval(this.interval);
+    }
+}
+
+function component(width, height, color, x, y,bool) {
+	this.width = width;
+    this.height = height;
+    this.speedX = 0;
+    this.speedY = 0;    
+    this.x = x;
+    this.y = y;
+    if(bool==true){
+        this.update = function() {
+          ctx = myGameArea.context;
+          ctx.fillStyle = color;
+          ctx.fillRect(this.x, this.y, this.width, this.height);
+    	}	
+    }
+    else{
+    	this.update = function() {
+          ctx = myGameArea.context;
+          ctx.fillStyle = "blue";
+          ctx.beginPath();
+          ctx.arc(this.x,this.y,15,0, 2 * Math.PI);
+          ctx.fill();
+    	}
+    }
+    this.newPos = function() {
+        if(!(this.x + this.speedX < 15 || this.x + this.speedX > 689)){
+            this.x += this.speedX;
+        }
+        if(!(this.y + this.speedY +1.5 < 15 || this.y + this.speedY +1.5 > 385)){
+            this.y += this.speedY + 1.5;
+        }        
+    }    
+    this.crashWith = function(otherobj) {
+        var myleft = this.x-1;
+        var myright = this.x + 15;
+        var mytop = this.y-1;
+        var mybottom = this.y + 15;
+        var otherleft = otherobj.x;
+        var otherright = otherobj.x + (otherobj.width);
+        var othertop = otherobj.y;
+        var otherbottom = otherobj.y + (otherobj.height);
+        var crash = true;
+        if ((mybottom < othertop) || (mytop > otherbottom) || (myright < otherleft) || (myleft > otherright)) {
+            crash = false;
+        }
+        return crash;
+    }
+}
+
+function updateGameArea() {
+    var x, height, gap, minHeight, maxHeight, minGap, maxGap;
+    dh = document.getElementById("health");
+    score = document.getElementById("score");
+    for (i = 0; i < myObstacles.length; i += 1) {
+        if (myGamePiece.crashWith(myObstacles[i])) {
+            myGamePiece.y=myObstacles[i].y-16;
+        } 
+        if(myGamePiece.y-16==0){
+            t=0;
+            myGamePiece.y += 25;
+            myGamePiece.newPos();
+        }
+    }
+    if(myGamePiece.y-17<=0 || myGamePiece.y+17>=400){
+        health-=1;
+        p="";
+        if(health==2){
+            p="Health : ❤️❤️";
+        }
+        else{
+            p="Health : ❤️"
+        }
+        if(health>0){
+            if(t==0){
+                dh.innerHTML = p;
+                score.style.marginright += 20;
+            }
+            else{
+                myGamePiece.y = 55;
+                myGamePiece.newPos();
+                dh.innerHTML = p;
+            }
+        }
+        else{
+            dh.innerHTML = "Health : "+health;
+            myGameArea.stop();
+        }
+    }
+    t=1;
+    myGameArea.clear();
+    myGameArea.frameNo += 1;
+    if (myGameArea.frameNo == 1 || everyinterval(150)) {
+        x = myGameArea.canvas.height;
+        minWidth = 20;
+        maxWidth = 200;
+        height = Math.floor(Math.random()*(maxWidth-minWidth+1)+minWidth);
+        x_rand=Math.floor(Math.random()*200)
+        y_rand=Math.floor(Math.random()*100)+100
+        y_rand1=Math.floor(Math.random()*150)+200
+        x_rand1=Math.floor(Math.random()*150)+300
+        minGap = 50;
+        maxGap = 200;
+        gap = Math.floor(Math.random()*(maxGap-minGap+1)+minGap);
+        myObstacles.push(new component(150,10, "green", x_rand, y_rand,true));
+        myObstacles.push(new component(150,10, "green", x_rand1, y_rand1,true));
+        
+    }
+    for (i = 0; i < myObstacles.length; i += 1) {
+        myObstacles[i].y -=1;
+        myObstacles[i].update();
+    }
+    score.innerHTML = "Score : " + Math.floor(myGameArea.frameNo/10);
+    myGamePiece.newPos();    
+    myGamePiece.update();
+    
+}
+
+function everyinterval(n) {
+    if ((myGameArea.frameNo / n) % 1 == 0) {return true;}
+    return false;
+}
+
+function moveup(){
+	myGamePiece.speedY = -2; 
+}
+
+function movedown() {
+    myGamePiece.speedY = 3; 
+}
+
+function moveleft() {
+    myGamePiece.speedX = -3; 
+}
+
+function moveright() {
+    myGamePiece.speedX = 3; 
+}
+
+function clearmove() {
+    myGamePiece.speedX = 0; 
+    myGamePiece.speedY = 0; 
+}
+</script>
+<br>
+<p style="float: right; margin-top:-450px;margin-right:320px;font-size:2em;" id="health">Health: ❤️❤️❤️</p>
+<p style="float: right; margin-top:-380px;margin-right:320px;font-size:2em;" id="score">Score : 0</p>
+<div style="text-align:center;width:480px;float:right;margin-top:-300px;margin-right:170px;">
+  <button onmousedown="moveup()" onmouseup="clearmove()" ontouchstart="moveup()">UP</button><br><br>
+  <button onmousedown="moveleft()" onmouseup="clearmove()" ontouchstart="moveleft()">LEFT</button>
+  <button onmousedown="moveright()" onmouseup="clearmove()" ontouchstart="moveright()">RIGHT</button><br><br>
+  <button onmousedown="movedown()" onmouseup="clearmove()" ontouchstart="movedown()">DOWN</button>
+</div>
+
+</body>
+</html>
